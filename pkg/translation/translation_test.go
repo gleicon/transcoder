@@ -307,6 +307,11 @@ func TestTranslateFile(t *testing.T) {
 				if err := os.WriteFile(inputPath, []byte("test data"), 0644); err != nil {
 					t.Fatalf("Failed to create input file: %v", err)
 				}
+				// Create the WAV file that would be created by FFmpeg
+				wavFile := filepath.Join(dir, filepath.Base(inputPath)+".wav")
+				if err := os.WriteFile(wavFile, []byte("test wav data"), 0644); err != nil {
+					t.Fatalf("Failed to create WAV file: %v", err)
+				}
 			}
 
 			// Create mock commands

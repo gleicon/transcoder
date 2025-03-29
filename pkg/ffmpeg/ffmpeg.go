@@ -26,6 +26,7 @@ func New() (*FFmpeg, error) {
 		return nil, fmt.Errorf("ffmpeg command not found. Please install it using: brew install ffmpeg")
 	}
 
+	// Initialize without a command - we'll create new commands for each operation
 	return &FFmpeg{}, nil
 }
 
@@ -68,15 +69,13 @@ func (f *FFmpeg) ExtractAudio(ctx context.Context, input, output string) error {
 		output,
 	}
 
-	// Create command with context
-	if f.Cmd == nil {
-		f.Cmd = exec.CommandContext(ctx, "ffmpeg", args...)
-		f.Cmd.Stdout = os.Stdout
-		f.Cmd.Stderr = os.Stderr
-	}
+	// Create a new command for this operation
+	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	// Run the command
-	if err := f.Cmd.Run(); err != nil {
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to extract audio: %v", err)
 	}
 
@@ -111,15 +110,13 @@ func (f *FFmpeg) ChangeSpeed(ctx context.Context, input, output string, speed fl
 		output,
 	}
 
-	// Create command with context
-	if f.Cmd == nil {
-		f.Cmd = exec.CommandContext(ctx, "ffmpeg", args...)
-		f.Cmd.Stdout = os.Stdout
-		f.Cmd.Stderr = os.Stderr
-	}
+	// Create a new command for this operation
+	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	// Run the command
-	if err := f.Cmd.Run(); err != nil {
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to change video speed: %v", err)
 	}
 

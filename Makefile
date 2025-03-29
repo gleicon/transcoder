@@ -74,7 +74,7 @@ endif
 
 # Build the application
 build:
-	$(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME) ./cmd/videotool
+	$(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME) ./cmd/transcoder
 
 # Run tests
 test:
