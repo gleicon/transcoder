@@ -1,3 +1,8 @@
 *.db
 whisper.cpp
 models/*
+.vscode/*
+.idea/*
+*/coverage.out
+*/coverage.html
+./coverage.*

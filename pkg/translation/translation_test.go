@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -149,7 +150,18 @@ func createTestFile(t *testing.T, path string) {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	if err := os.WriteFile(path, []byte("test data"), 0644); err != nil {
+
+	// Create a simple audio file with a 1-second sine wave
+	cmd := exec.Command("ffmpeg",
+		"-f", "lavfi",
+		"-i", "sine=frequency=440:duration=1",
+		"-acodec", "pcm_s16le",
+		"-ar", "44100",
+		"-ac", "1",
+		"-y",
+		path,
+	)
+	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 }
@@ -258,6 +270,19 @@ func TestTranslate(t *testing.T) {
 }
 
 func TestTranslateFile(t *testing.T) {
+	// Get the test file's directory
+	_, testFile, _, _ := runtime.Caller(0)
+	testDir := filepath.Dir(testFile)
+
+	// Get the project root (two levels up from pkg/translation)
+	projectRoot := filepath.Join(testDir, "..", "..")
+
+	// Get the testdata directory
+	testDataDir := filepath.Join(projectRoot, "testdata")
+	if _, err := os.Stat(testDataDir); os.IsNotExist(err) {
+		t.Fatalf("Test data directory not found: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		input       string
@@ -268,51 +293,40 @@ func TestTranslateFile(t *testing.T) {
 	}{
 		{
 			name:       "valid_mp3",
-			input:      "input.mp3",
+			input:      filepath.Join(testDataDir, "samples", "sample.mp3"),
 			output:     "output.srt",
 			targetLang: "es",
 			wantErr:    false,
 		},
 		{
 			name:       "valid_mp4",
-			input:      "input.mp4",
+			input:      filepath.Join(testDataDir, "samples", "sample.mp4"),
 			output:     "output.srt",
 			targetLang: "es",
 			wantErr:    false,
 		},
 		{
-			name:       "nonexistent_input",
-			input:      "nonexistent.mp3",
-			output:     "output.srt",
-			targetLang: "es",
-			wantErr:    true,
+			name:        "nonexistent_input",
+			input:       "nonexistent.mp3",
+			output:      "output.srt",
+			targetLang:  "es",
+			wantErr:     true,
+			errContains: "input file not found",
 		},
 		{
-			name:       "empty_target_language",
-			input:      "input.mp3",
-			output:     "output.srt",
-			targetLang: "",
-			wantErr:    true,
+			name:        "empty_target_language",
+			input:       filepath.Join(testDataDir, "samples", "sample.mp3"),
+			output:      "output.srt",
+			targetLang:  "",
+			wantErr:     true,
+			errContains: "target language is required",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := t.TempDir()
-			inputPath := filepath.Join(dir, tt.input)
 			outputPath := filepath.Join(dir, tt.output)
-
-			// Create input file for valid test cases
-			if tt.name == "valid_mp3" || tt.name == "valid_mp4" {
-				if err := os.WriteFile(inputPath, []byte("test data"), 0644); err != nil {
-					t.Fatalf("Failed to create input file: %v", err)
-				}
-				// Create the WAV file that would be created by FFmpeg
-				wavFile := filepath.Join(dir, filepath.Base(inputPath)+".wav")
-				if err := os.WriteFile(wavFile, []byte("test wav data"), 0644); err != nil {
-					t.Fatalf("Failed to create WAV file: %v", err)
-				}
-			}
 
 			// Create mock commands
 			ffmpegCmd := mockCommand("ffmpeg")
@@ -325,7 +339,7 @@ func TestTranslateFile(t *testing.T) {
 			}
 			defer translator.Close()
 
-			err = translator.TranslateFile(context.Background(), inputPath, outputPath, tt.targetLang)
+			err = translator.TranslateFile(context.Background(), tt.input, outputPath, tt.targetLang)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TranslateFile() error = %v, wantErr %v", err, tt.wantErr)
 			}

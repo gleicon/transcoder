@@ -46,8 +46,11 @@ else
 endif
 
 # Default target
-all: setup build
+all: setup build model
 
+model:
+	mkdir models
+	curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin -o models/ggml-base.en.bin
 # Setup development environment
 setup:
 	@echo "Setting up development environment..."
